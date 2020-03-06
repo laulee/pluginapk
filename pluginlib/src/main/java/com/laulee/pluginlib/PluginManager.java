@@ -108,13 +108,19 @@ public class PluginManager {
         return null;
     }
 
+    /**
+     *
+     * @param apkPath
+     * @return
+     */
     private AssetManager createAssetManager(String apkPath) {
-
         try {
             AssetManager assetManager = AssetManager.class.newInstance();
             Method method = AssetManager.class.getDeclaredMethod("addAssetPath", String.class);
-            method.invoke(context.getResources().getAssets(), apkPath);
-            return context.getResources().getAssets();
+            method.setAccessible(true);
+            method.invoke(assetManager, mBaseContext.getPackageResourcePath());
+            method.invoke(assetManager, apkPath);
+            return assetManager;
         } catch (IllegalAccessException e) {
             e.printStackTrace();
         } catch (InstantiationException e) {
@@ -127,16 +133,24 @@ public class PluginManager {
         return null;
     }
 
+    /**
+     * @param apkPath
+     * @return
+     */
     private DexClassLoader createDexClassLoader(String apkPath) {
         File file = context.getDir("dex", Context.MODE_PRIVATE);
         DexClassLoader dexClassLoader = new DexClassLoader(apkPath, file.getAbsolutePath(), null, context.getClassLoader());
         return dexClassLoader;
     }
 
+    /**
+     * @param activity
+     * @param className
+     */
     public void startActivity(Activity activity, String className) {
         Intent intent = null;
         try {
-            intent = new Intent(activity, getPluginApk().getClassLoader().loadClass("com.laulee.neplugin.NePluginActivity"));
+            intent = new Intent(activity, getPluginApk().getClassLoader().loadClass(className));
             activity.startActivity(intent);
         } catch (ClassNotFoundException e) {
             e.printStackTrace();

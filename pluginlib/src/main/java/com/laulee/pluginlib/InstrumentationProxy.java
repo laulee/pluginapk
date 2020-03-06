@@ -40,7 +40,7 @@ public class InstrumentationProxy extends Instrumentation {
             Context who, IBinder contextThread, IBinder token,
             Activity target, Intent intent, int requestCode, Bundle options) {
 
-        Log.d(TAG, "Hook 成功 " + "-----who:" + who);
+        Log.d(TAG, "Hook 成功 " + "-----who:" + who.getClass().getName());
 
         try {
             Method execStartActivity = Instrumentation.class.getDeclaredMethod("execStartActivity",
@@ -62,6 +62,7 @@ public class InstrumentationProxy extends Instrumentation {
         if (intent != null && intent.getParcelableExtra(TARGET_INTENT) != null) {
             className = ((Intent) intent.getParcelableExtra(TARGET_INTENT)).getComponent().getClassName();
             cl = PluginManager.getInstance().getPluginApk().getClassLoader();
+            Log.d(TAG, "newActivity 成功 " + "TARGET_INTENT-----who:" + className);
         }
         Log.d(TAG, "newActivity 成功 " + "-----who:" + className);
         return mBase.newActivity(cl, className, intent);

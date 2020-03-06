@@ -15,7 +15,7 @@ public class MainActivity extends Activity {
     }
 
     public void load(View view) {
-        PluginManager.getInstance().loadApk(Utils.copyAssetAndWrite(this, "ne3.apk"));
+        PluginManager.getInstance().loadApk(Utils.copyAssetAndWrite(this, "ne4.apk"));
     }
 
     public void start(View view) {

@@ -3,6 +3,7 @@ package com.laulee.pluginlib;
 import android.app.Activity;
 import android.app.Application;
 import android.app.Instrumentation;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageInfo;
@@ -11,9 +12,12 @@ import android.content.res.AssetManager;
 import android.content.res.Resources;
 
 import java.io.File;
+import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.HashMap;
+import java.util.Map;
 
 import dalvik.system.DexClassLoader;
 
@@ -24,32 +28,85 @@ public class PluginManager {
 
     private static final PluginManager instance = new PluginManager();
     private Application context;
-    private PluginApk mPluginApk;
-    private Context mBaseContext;
-    private Object mPackageInfo;
-    private Resources mNowResources;
+    private volatile Context mBaseContext;
+    public static Map<String, PluginApk> plugins = new HashMap<>();
 
     public static PluginManager getInstance() {
         return instance;
     }
 
     private PluginManager() {
-
     }
 
-    public PluginApk getPluginApk() {
-        return mPluginApk;
+    public Map<String, PluginApk> getPlugins() {
+        return plugins;
     }
 
     public void init(Application context) {
         this.context = context;
         //初始化一些成员变量和加载已安装的插件
-        mPackageInfo = RefInvoke.getFieldObject(context.getBaseContext(), "mPackageInfo");
         mBaseContext = context.getBaseContext();
-        mNowResources = mBaseContext.getResources();
+        //自动加载asset下面的apk
+        loadApk(context);
+        //代理instrumentation创建代理activity、迷惑activityThread
         proxyInstrumentation();
+        //hook ActivityThread启动service
+        AMSHooker.hook(context);
     }
 
+    /**
+     * 加载插件
+     *
+     * @param application
+     */
+    private void loadApk(Application application) {
+        try {
+            AssetManager assetManager = application.getAssets();
+            String[] paths = assetManager.list("");
+            for (String path : paths) {
+                if (path.endsWith(".apk")) {
+                    String apkPath = Utils.copyAssetAndWrite(mBaseContext, path);
+                    PluginApk item = generatePluginItem(apkPath);
+                    if (item != null) {
+                        System.out.println("pluginItem packageName is " + item.getPackageInfo().packageName);
+                        plugins.put(item.getPackageInfo().packageName, item);
+                    }
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * 加载插件
+     *
+     * @param apkPath
+     * @return
+     */
+    private PluginApk generatePluginItem(String apkPath) {
+        File file = new File(apkPath);
+        if (!file.exists()) {
+            return null;
+        }
+        PackageInfo packageInfo = context.getPackageManager().getPackageArchiveInfo(apkPath,
+                PackageManager.GET_ACTIVITIES | PackageManager.GET_SERVICES);
+        if (packageInfo == null) {
+            return null;
+        }
+
+        //创建classLoader
+        DexClassLoader dexClassLoader = createDexClassLoader(apkPath);
+        //创建resources
+        AssetManager assetManager = createAssetManager(apkPath);
+        Resources resources = createResource(assetManager);
+        PluginApk mPluginApk = new PluginApk(assetManager, dexClassLoader, resources, packageInfo);
+        return mPluginApk;
+    }
+
+    /**
+     * 代理
+     */
     private void proxyInstrumentation() {
         try {
             Class<?> clazz = Class.forName("android.app.ActivityThread");
@@ -72,36 +129,24 @@ public class PluginManager {
 
     //加载apk文件
     public void loadApk(String apkPath) {
-        File file = new File(apkPath);
-        if (!file.exists()) {
-            return;
+        PluginApk pluginApk = generatePluginItem(apkPath);
+        if (pluginApk != null) {
+            plugins.put(pluginApk.getPackageInfo().packageName, pluginApk);
         }
-        PackageInfo packageInfo = context.getPackageManager().getPackageArchiveInfo(apkPath,
-                PackageManager.GET_ACTIVITIES | PackageManager.GET_SERVICES);
-        if (packageInfo == null) {
-            return;
-        }
-
-        //创建classLoader
-        DexClassLoader dexClassLoader = createDexClassLoader(apkPath);
-        //创建resources
-        AssetManager assetManager = createAssetManager(apkPath);
-        Resources resources = createResource(assetManager);
-        mPluginApk = new PluginApk(assetManager, dexClassLoader, resources, packageInfo);
     }
 
+    /**
+     * 创建resources
+     *
+     * @param assetManager
+     * @return
+     */
     private Resources createResource(AssetManager assetManager) {
-        Resources resources = context.getBaseContext().getResources();
         try {
-            Resources newResources = new Resources(assetManager, resources.getDisplayMetrics(), resources.getConfiguration());
-            RefInvoke.setFieldObject(mBaseContext, "mResources", newResources);
-            //这是最主要的需要替换的，如果不支持插件运行时更新，只留这一个就可以了
-            RefInvoke.setFieldObject(mPackageInfo, "mResources", newResources);
-            mNowResources = newResources;
-            //需要清理mTheme对象，否则通过inflate方式加载资源会报错
-            //如果是activity动态加载插件，则需要把activity的mTheme对象也设置为null
-            RefInvoke.setFieldObject(mBaseContext, "mTheme", null);
-            return mNowResources;
+            Resources resources = mBaseContext.getResources();
+            Resources newResources = new Resources(assetManager, resources.getDisplayMetrics(),
+                    resources.getConfiguration());
+            return newResources;
         } catch (Exception e) {
 
         }
@@ -109,7 +154,6 @@ public class PluginManager {
     }
 
     /**
-     *
      * @param apkPath
      * @return
      */
@@ -118,7 +162,6 @@ public class PluginManager {
             AssetManager assetManager = AssetManager.class.newInstance();
             Method method = AssetManager.class.getDeclaredMethod("addAssetPath", String.class);
             method.setAccessible(true);
-            method.invoke(assetManager, mBaseContext.getPackageResourcePath());
             method.invoke(assetManager, apkPath);
             return assetManager;
         } catch (IllegalAccessException e) {
@@ -150,9 +193,45 @@ public class PluginManager {
     public void startActivity(Activity activity, String className) {
         Intent intent = null;
         try {
-            intent = new Intent(activity, getPluginApk().getClassLoader().loadClass(className));
+            intent = new Intent();
+            int end = className.lastIndexOf(".");
+            String packageName = className.substring(0, end);
+            ComponentName componentName = new ComponentName(packageName, className);
+            intent.setComponent(componentName);
             activity.startActivity(intent);
-        } catch (ClassNotFoundException e) {
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * @param activity
+     * @param serviceName
+     */
+    public void startService(Activity activity, String serviceName) {
+        Intent intent = null;
+        try {
+            intent = new Intent();
+            int end = serviceName.lastIndexOf(".");
+            String packageName = serviceName.substring(0, end);
+            ComponentName componentName = new ComponentName(packageName, serviceName);
+            intent.setComponent(componentName);
+            activity.startService(intent);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void stopService(Activity activity, String serviceName) {
+        Intent intent = null;
+        try {
+            intent = new Intent();
+            int end = serviceName.lastIndexOf(".");
+            String packageName = serviceName.substring(0, end);
+            ComponentName componentName = new ComponentName(packageName, serviceName);
+            intent.setComponent(componentName);
+            activity.stopService(intent);
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }

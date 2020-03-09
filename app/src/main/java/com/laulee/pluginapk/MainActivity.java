@@ -14,11 +14,23 @@ public class MainActivity extends Activity {
         setContentView(R.layout.activity_main);
     }
 
-    public void load(View view) {
-        PluginManager.getInstance().loadApk(Utils.copyAssetAndWrite(this, "ne4.apk"));
-    }
-
     public void start(View view) {
         PluginManager.getInstance().startActivity(this, "com.laulee.neplugin.NePluginActivity");
+    }
+
+    public void startService(View view) {
+        PluginManager.getInstance().startService(this, "com.laulee.neplugin.TestService");
+    }
+
+    public void startService2(View view) {
+        PluginManager.getInstance().startService(this, "com.laulee.neplugin.TestService2");
+    }
+
+    public void stopService(View view) {
+        PluginManager.getInstance().stopService(this, "com.laulee.neplugin.TestService");
+    }
+
+    public void stopService2(View view) {
+        PluginManager.getInstance().stopService(this, "com.laulee.neplugin.TestService2");
     }
 }

@@ -10,15 +10,36 @@
     <Button
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:onClick="load"
-        android:text="load"
+        android:onClick="start"
+        android:text="启动插件activity"
         tools:ignore="MissingConstraints" />
 
     <Button
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:onClick="start"
-        android:text="start"
+        android:onClick="startService"
+        android:text="启动插件service"
+        tools:ignore="MissingConstraints" />
+
+    <Button
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:onClick="startService2"
+        android:text="启动插件service"
+        tools:ignore="MissingConstraints" />
+
+    <Button
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:onClick="stopService"
+        android:text="关闭service"
+        tools:ignore="MissingConstraints" />
+
+    <Button
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:onClick="stopService2"
+        android:text="关闭service2"
         tools:ignore="MissingConstraints" />
 
 </LinearLayout>

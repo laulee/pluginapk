@@ -39,18 +39,17 @@ public class InstrumentationProxy extends Instrumentation {
     public ActivityResult execStartActivity(
             Context who, IBinder contextThread, IBinder token,
             Activity target, Intent intent, int requestCode, Bundle options) {
-
-        Log.d(TAG, "Hook 成功 " + "-----who:" + who.getClass().getName());
-
         try {
             Method execStartActivity = Instrumentation.class.getDeclaredMethod("execStartActivity",
                     Context.class, IBinder.class, IBinder.class, Activity.class, Intent.class, int.class, Bundle.class);
-            //替换代理activity
-            Intent proxyIntent = new Intent();
-            proxyIntent.setClassName("com.laulee.pluginapk", StubActivity.class.getName());
-            proxyIntent.putExtra(TARGET_INTENT, intent);
-
-            return (ActivityResult) execStartActivity.invoke(mBase, who, contextThread, token, target, proxyIntent, requestCode, options);
+            if (!who.getPackageName().equals(intent.getComponent().getPackageName())) {
+                //替换代理activity
+                Intent proxyIntent = new Intent();
+                proxyIntent.setClassName(who.getPackageName(), StubActivity.class.getName());
+                proxyIntent.putExtra(TARGET_INTENT, intent);
+                return (ActivityResult) execStartActivity.invoke(mBase, who, contextThread, token, target, proxyIntent, requestCode, options);
+            }
+            return (ActivityResult) execStartActivity.invoke(mBase, who, contextThread, token, target, intent, requestCode, options);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -59,12 +58,13 @@ public class InstrumentationProxy extends Instrumentation {
 
     @Override
     public Activity newActivity(ClassLoader cl, String className, Intent intent) throws ClassNotFoundException, IllegalAccessException, InstantiationException {
+        //是否包含真实的activity
         if (intent != null && intent.getParcelableExtra(TARGET_INTENT) != null) {
-            className = ((Intent) intent.getParcelableExtra(TARGET_INTENT)).getComponent().getClassName();
-            cl = PluginManager.getInstance().getPluginApk().getClassLoader();
-            Log.d(TAG, "newActivity 成功 " + "TARGET_INTENT-----who:" + className);
+            Intent proxyIntent = intent.getParcelableExtra(TARGET_INTENT);
+            className = proxyIntent.getComponent().getClassName();
+            cl = PluginManager.getInstance().getPlugins().get(proxyIntent.getComponent().getPackageName()).getClassLoader();
+            intent.setComponent(proxyIntent.getComponent());
         }
-        Log.d(TAG, "newActivity 成功 " + "-----who:" + className);
         return mBase.newActivity(cl, className, intent);
     }
 }

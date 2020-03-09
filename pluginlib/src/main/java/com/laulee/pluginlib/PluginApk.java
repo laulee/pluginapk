@@ -9,11 +9,10 @@ import android.content.res.Resources;
  */
 public class PluginApk {
 
-    public AssetManager assetManager;
-    public ClassLoader classLoader;
-    public Resources resources;
-    public PackageInfo packageInfo;
-
+    private AssetManager assetManager;
+    private ClassLoader classLoader;
+    private Resources resources;
+    private PackageInfo packageInfo;
 
     public PluginApk(AssetManager assetManager, ClassLoader classLoader, Resources resources, PackageInfo packageInfo) {
         this.assetManager = assetManager;
@@ -36,5 +35,15 @@ public class PluginApk {
 
     public PackageInfo getPackageInfo() {
         return packageInfo;
+    }
+
+    @Override
+    public String toString() {
+        return "PluginApk{" +
+                "assetManager=" + assetManager +
+                ", classLoader=" + classLoader +
+                ", resources=" + resources +
+                ", packageInfo=" + packageInfo +
+                '}';
     }
 }

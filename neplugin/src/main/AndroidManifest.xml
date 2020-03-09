@@ -2,15 +2,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.laulee.neplugin">
 
-    <application>
-        <activity android:name=".NePluginActivity">
-
-            <intent-filter>
-                <category android:name="android.intent.category.LAUNCHER" />
-
-                <action android:name="android.intent.action.MAIN" />
-            </intent-filter>
-        </activity>
-    </application>
+    <application android:allowBackup="true"></application>
 
 </manifest>

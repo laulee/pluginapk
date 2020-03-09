@@ -2,4 +2,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.laulee.pluginlib">
 
+    <application>
+        <service android:name=".LocalService" />
+
+        <activity android:name="com.laulee.pluginlib.StubActivity" />
+    </application>
 </manifest>

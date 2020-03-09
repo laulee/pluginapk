@@ -1,6 +1,7 @@
 package com.laulee.pluginapk;
 
 import android.app.Application;
+import android.content.Context;
 
 import com.laulee.pluginlib.PluginManager;
 
@@ -10,8 +11,8 @@ import com.laulee.pluginlib.PluginManager;
 public class MyApplication extends Application {
 
     @Override
-    public void onCreate() {
-        super.onCreate();
+    protected void attachBaseContext(Context base) {
+        super.attachBaseContext(base);
         PluginManager.getInstance().init(this);
     }
 }

@@ -20,11 +20,11 @@ public class RefInvoke {
         }
     }
 
-    public static Object getFieldObject(Object object, String name) {
+    public static Object getFieldObject(Class clazz, String name, Object o) {
         try {
-            Field field = object.getClass().getDeclaredField(name);
+            Field field = clazz.getDeclaredField(name);
             field.setAccessible(true);
-            return field.get(object);
+            return field.get(o);
         } catch (NoSuchFieldException e) {
             e.printStackTrace();
         } catch (IllegalAccessException e) {

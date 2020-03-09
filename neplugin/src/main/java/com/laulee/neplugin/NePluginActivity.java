@@ -1,9 +1,9 @@
 package com.laulee.neplugin;
 
+import android.content.ComponentName;
+import android.content.Intent;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
-import android.widget.Toast;
 
 public class NePluginActivity extends BaseActivity {
 
@@ -12,11 +12,22 @@ public class NePluginActivity extends BaseActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        Log.d(TAG, "===onCreate");
         setContentView(R.layout.activity_ne_plugin);
     }
 
     public void toast(View view) {
-        Toast.makeText(this, "toast", Toast.LENGTH_LONG).show();
+        String packageName = getPackageName();
+        String className = packageName + ".BackActivity";
+        ComponentName componentName = new ComponentName(packageName, className);
+        Intent intent = new Intent();
+        intent.setComponent(componentName);
+        startActivity(intent);
+    }
+
+    public void start(View view) {
+        ComponentName componentName = new ComponentName("com.laulee.neplugin", "com.laulee.neplugin.SecondActivity");
+        Intent intent = new Intent();
+        intent.setComponent(componentName);
+        startActivity(intent);
     }
 }
